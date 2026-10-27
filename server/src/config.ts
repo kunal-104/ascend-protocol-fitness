@@ -18,6 +18,8 @@ const schema = z.object({
   PUBSUB_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
   /** Alternative to OIDC: a long random secret appended to the push URL as ?token=… */
   RTDN_SHARED_SECRET: z.string().min(24).optional(),
+  /** Comma-separated browser origins allowed to call the API (only needed for the web preview build). */
+  CORS_ORIGINS: z.string().optional(),
 });
 
 export type Config = z.infer<typeof schema>;

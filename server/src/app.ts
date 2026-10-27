@@ -25,6 +25,21 @@ export function createApp(deps: AppDeps) {
   app.set('trust proxy', 1);
   app.use(helmet());
   app.use(express.json({ limit: '100kb' }));
+  // The mobile app doesn't need CORS; this is only for the optional web preview.
+  const origins = config.CORS_ORIGINS?.split(',').map((o) => o.trim());
+  if (origins?.length) {
+    app.use((req, res, next) => {
+      const origin = req.headers.origin;
+      if (origin && (origins.includes('*') || origins.includes(origin))) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+        res.setHeader('Vary', 'Origin');
+      }
+      if (req.method === 'OPTIONS') return void res.status(204).end();
+      next();
+    });
+  }
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true });

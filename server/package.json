@@ -9,7 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env src/db/migrate.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dev:lite": "tsx src/dev-lite.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.12",

@@ -33,6 +33,8 @@ export interface UserState {
   access: AccessStatus;
   subscription: SubscriptionSnapshot;
   checkIn: { due: boolean; nextDate: DateStr; lastDate?: DateStr; count: number };
+  todayWorkout: { completion: number; xp: number } | null;
+  todayHabits: { proteinHit: boolean; caloriesOnTarget: boolean; waterHit: boolean; stepsHit: boolean } | null;
 }
 
 export async function loadProfile(db: Db, userId: string): Promise<ProfileRow | undefined> {
@@ -75,6 +77,8 @@ export async function loadUserState(db: Db, userId: string, now = new Date()): P
   });
 
   const lastDate = checkIns[0]?.date;
+  const tw = workouts.find((w) => w.date === today);
+  const th = habits.find((h) => h.date === today);
   return {
     email: user.email,
     profileRow,
@@ -90,6 +94,8 @@ export async function loadUserState(db: Db, userId: string, now = new Date()): P
       lastDate,
       count: checkIns.length,
     },
+    todayWorkout: tw ? { completion: tw.completion, xp: tw.xp } : null,
+    todayHabits: th ? { proteinHit: th.proteinHit, caloriesOnTarget: th.caloriesOnTarget, waterHit: th.waterHit, stepsHit: th.stepsHit } : null,
   };
 }
 
@@ -105,7 +111,10 @@ export function requireAccess(state: UserState): void {
 
 /** Logs may be written for today or yesterday (local time), never the future or before day 1. */
 export function assertLoggableDate(state: UserState, date: DateStr): void {
-  if (date > state.today || date < addDays(state.today, -1) || date < state.profileRow.startDate) {
+  if (date < state.profileRow.startDate) {
+    throw new HttpError(400, 'date_not_loggable', 'This day is before your Protocol began');
+  }
+  if (date > state.today || date < addDays(state.today, -1)) {
     throw new HttpError(400, 'date_not_loggable', 'You can only log today or yesterday');
   }
 }
@@ -125,5 +134,7 @@ export function serializeState(s: UserState) {
     access: s.access,
     subscription: s.subscription,
     checkIn: s.checkIn,
+    todayWorkout: s.todayWorkout,
+    todayHabits: s.todayHabits,
   };
 }
