@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Weekday } from './types';
 
 /** Minimum age to use the app. Under-18 users get maintenance-only nutrition (see nutrition.ts). */
 export const MIN_AGE = 16;
@@ -31,7 +32,14 @@ export const profileSchema = z.object({
     .array(z.enum(['none', 'dumbbells', 'resistance_bands', 'pullup_bar', 'bench', 'barbell', 'cable_machine', 'machines', 'cardio_machine']))
     .max(9),
   workoutDays: z
-    .array(z.number().int().min(0).max(6))
+    .array(
+      z
+        .number()
+        .int()
+        .min(0)
+        .max(6)
+        .transform((n) => n as Weekday),
+    )
     .min(1)
     .max(7)
     .refine((d) => new Set(d).size === d.length, 'Duplicate days'),

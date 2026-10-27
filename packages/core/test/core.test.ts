@@ -274,3 +274,17 @@ describe('validation', () => {
     expect(profileSchema.safeParse({ ...base, workoutDays: [1, 1] }).success).toBe(false);
   });
 });
+
+describe('player state', () => {
+  it('aggregates XP, stats and full weeks', async () => {
+    const { computePlayer, XP } = await import('../src');
+    // start Monday 2026-01-05, training Mon/Wed/Fri, first week fully done
+    const workouts = ['2026-01-05', '2026-01-07', '2026-01-09'].map((date) => ({ date, xp: 150, completion: 1, stats: { STR: 1 } }));
+    const p = computePlayer({ startDate: '2026-01-05', today: '2026-01-13', trainingWeekdays: [1, 3, 5], workouts, habits: [{ xp: 50, stats: { VIT: 1 } }], checkIns: 0 });
+    expect(p.fullWeeks).toBe(1);
+    expect(p.xp).toBe(450 + 50 + XP.streakWeek);
+    expect(p.stats.STR).toBe(13);
+    expect(p.stats.DIS).toBe(11);
+    expect(p.streak).toBe(0); // Monday 12th was missed
+  });
+});

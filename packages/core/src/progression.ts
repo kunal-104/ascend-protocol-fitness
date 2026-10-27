@@ -138,3 +138,74 @@ export function addStats(a: Stats, b: Partial<Stats>): Stats {
   for (const k of Object.keys(b) as StatKey[]) out[k] += b[k] ?? 0;
   return out;
 }
+
+/** A logged Directive counts toward the Chain when at least half of it was done. */
+export const STREAK_COMPLETION_THRESHOLD = 0.5;
+
+/**
+ * Full weeks (7-day blocks counted from the start date, entirely before today) in which every
+ * scheduled training day was completed. Each one grants Discipline and bonus Essence.
+ */
+export function fullWeeks(trainingWeekdays: number[], completed: Set<DateStr>, startDate: DateStr, today: DateStr): number {
+  const training = new Set(trainingWeekdays);
+  if (training.size === 0) return 0;
+  let count = 0;
+  for (let weekStart = startDate; addDays(weekStart, 6) < today; weekStart = addDays(weekStart, 7)) {
+    let ok = true;
+    for (let i = 0; i < 7 && ok; i++) {
+      const d = addDays(weekStart, i);
+      if (training.has(weekdayOf(d)) && !completed.has(d)) ok = false;
+    }
+    if (ok) count++;
+  }
+  return count;
+}
+
+export interface PlayerInput {
+  startDate: DateStr;
+  today: DateStr;
+  trainingWeekdays: number[];
+  workouts: { date: DateStr; xp: number; completion: number; stats: Partial<Stats> }[];
+  habits: { xp: number; stats: Partial<Stats> }[];
+  checkIns: number;
+}
+
+export interface PlayerState {
+  xp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
+  rank: Rank;
+  stats: Stats;
+  streak: number;
+  fullWeeks: number;
+  workoutsCompleted: number;
+}
+
+export function computePlayer(i: PlayerInput): PlayerState {
+  const completed = new Set(i.workouts.filter((w) => w.completion >= STREAK_COMPLETION_THRESHOLD).map((w) => w.date));
+  const weeks = fullWeeks(i.trainingWeekdays, completed, i.startDate, i.today);
+  let stats = { ...BASE_STATS };
+  let xp = i.checkIns * XP.checkIn + weeks * XP.streakWeek;
+  for (const w of i.workouts) {
+    xp += w.xp;
+    stats = addStats(stats, w.stats);
+  }
+  for (const h of i.habits) {
+    xp += h.xp;
+    stats = addStats(stats, h.stats);
+  }
+  stats.DIS += weeks;
+  const lvl = levelFromXp(xp);
+  return {
+    xp,
+    level: lvl.level,
+    xpIntoLevel: lvl.into,
+    xpForNextLevel: lvl.needed,
+    rank: rankForLevel(lvl.level),
+    stats,
+    streak: computeStreak(i.trainingWeekdays, completed, i.today, i.startDate),
+    fullWeeks: weeks,
+    workoutsCompleted: completed.size,
+  };
+}
