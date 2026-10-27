@@ -10,12 +10,14 @@ import { billingRoutes, type BillingDeps } from './routes/billing';
 import { checkInRoutes } from './routes/checkins';
 import { logRoutes } from './routes/logs';
 import { meRoutes } from './routes/me';
+import { createMailer, type Mailer } from './mailer';
 
 export interface AppDeps {
   db: Db;
   config: Config;
   play: PlayApi;
   verifyPushToken?: BillingDeps['verifyPushToken'];
+  mailer?: Mailer;
 }
 
 export function createApp(deps: AppDeps) {
@@ -46,7 +48,7 @@ export function createApp(deps: AppDeps) {
   });
 
   const v1 = express.Router();
-  v1.use('/auth', authRoutes(db, config.JWT_SECRET, { rateLimit: config.NODE_ENV !== 'test' }));
+  v1.use('/auth', authRoutes(db, config.JWT_SECRET, { rateLimit: config.NODE_ENV !== 'test', mailer: deps.mailer ?? createMailer(config) }));
   v1.use(billingRoutes(deps));
   v1.use(requireAuth(config.JWT_SECRET));
   v1.use(meRoutes(db));

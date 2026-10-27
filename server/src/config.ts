@@ -20,6 +20,9 @@ const schema = z.object({
   RTDN_SHARED_SECRET: z.string().min(24).optional(),
   /** Comma-separated browser origins allowed to call the API (only needed for the web preview build). */
   CORS_ORIGINS: z.string().optional(),
+  /** SMTP connection URL for password-reset emails, e.g. smtps://user:pass@smtp.example.com:465. Unset = codes are logged. */
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default('Ascend Protocol <no-reply@ascendprotocol.app>'),
 });
 
 export type Config = z.infer<typeof schema>;

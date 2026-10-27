@@ -32,6 +32,9 @@ const play: PlayApi = {
   },
 };
 
+const mails: { to: string; text: string }[] = [];
+const mailer = { send: async (to: string, _subject: string, text: string) => void mails.push({ to, text }) };
+
 let pg: PGlite;
 let app: ReturnType<typeof createApp>;
 
@@ -39,7 +42,7 @@ beforeAll(async () => {
   pg = new PGlite();
   const db = drizzle(pg, { schema });
   await migrate(db, { migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
-  app = createApp({ db: db as unknown as Db, config, play });
+  app = createApp({ db: db as unknown as Db, config, play, mailer });
 });
 afterAll(() => pg.close());
 afterEach(() => vi.useRealTimers());
@@ -87,6 +90,38 @@ describe('auth', () => {
     // old refresh token is single-use
     expect((await request(app).post('/v1/auth/refresh').send({ refreshToken: refresh })).status).toBe(401);
     expect((await request(app).get('/v1/me')).status).toBe(401);
+  });
+});
+
+describe('password reset', () => {
+  it('emails a code, rejects wrong codes, resets the password and revokes old sessions', async () => {
+    const { refresh } = await newUser('reset@example.com');
+    expect((await request(app).post('/v1/auth/password/forgot').send({ email: 'nobody@example.com' })).status).toBe(204);
+    expect(mails).toHaveLength(0);
+
+    expect((await request(app).post('/v1/auth/password/forgot').send({ email: 'Reset@Example.com' })).status).toBe(204);
+    const code = /code is (\d{6})/.exec(mails[0]!.text)![1]!;
+    const wrong = code === '000000' ? '111111' : '000000';
+    expect((await request(app).post('/v1/auth/password/reset').send({ email: 'reset@example.com', code: wrong, password: 'new-password-1' })).status).toBe(400);
+    const ok = await request(app).post('/v1/auth/password/reset').send({ email: 'reset@example.com', code, password: 'new-password-1' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.accessToken).toBeTruthy();
+    // single use
+    expect((await request(app).post('/v1/auth/password/reset').send({ email: 'reset@example.com', code, password: 'another-pass-2' })).status).toBe(400);
+    expect((await request(app).post('/v1/auth/refresh').send({ refreshToken: refresh })).status).toBe(401);
+    expect((await request(app).post('/v1/auth/login').send({ email: 'reset@example.com', password: 'correct-horse' })).status).toBe(401);
+    expect((await request(app).post('/v1/auth/login').send({ email: 'reset@example.com', password: 'new-password-1' })).status).toBe(200);
+  });
+
+  it('locks the code after 5 wrong attempts', async () => {
+    await newUser('brute@example.com');
+    await request(app).post('/v1/auth/password/forgot').send({ email: 'brute@example.com' });
+    const code = /code is (\d{6})/.exec(mails[mails.length - 1]!.text)![1]!;
+    for (let i = 0; i < 5; i++) {
+      const guess = String((Number(code) + 1 + i) % 1_000_000).padStart(6, '0');
+      await request(app).post('/v1/auth/password/reset').send({ email: 'brute@example.com', code: guess, password: 'new-password-1' });
+    }
+    expect((await request(app).post('/v1/auth/password/reset').send({ email: 'brute@example.com', code, password: 'new-password-1' })).status).toBe(400);
   });
 });
 

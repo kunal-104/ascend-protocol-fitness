@@ -52,6 +52,14 @@ export default function Auth() {
             />
             {error ? <T style={{ color: colors.danger }}>{error}</T> : null}
             <Button title={mode === 'register' ? 'Create account' : 'Sign in'} onPress={submit} loading={busy} />
+            {mode === 'login' ? (
+              <Button
+                variant="ghost"
+                title="Forgot password?"
+                onPress={() => router.push({ pathname: '/reset-password', params: { email } })}
+                style={{ borderWidth: 0, paddingVertical: space(2) }}
+              />
+            ) : null}
             <Button
               variant="ghost"
               title={mode === 'register' ? 'I already have an account' : 'Create a new account'}

@@ -45,6 +45,9 @@ async function saveTokens(t: TokenResponse) {
   await tokenStore.setItemAsync(REFRESH_KEY, t.refreshToken);
 }
 
+/** Store tokens returned by an endpoint other than login/register (e.g. password reset). */
+export const saveSession = saveTokens;
+
 export async function hasSession(): Promise<boolean> {
   return !!(await tokenStore.getItemAsync(REFRESH_KEY));
 }
