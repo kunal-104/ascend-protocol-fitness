@@ -1,0 +1,21 @@
+{
+  "name": "ascend-protocol",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "server",
+    "app"
+  ],
+  "scripts": {
+    "dev:lite": "npm run dev:lite -w @ascend/server",
+    "server:dev": "npm run dev -w @ascend/server",
+    "app:start": "npm run start -w app",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "npm run db:migrate -w @ascend/server",
+    "test": "npm run test -w @ascend/core && npm run test -w @ascend/server",
+    "typecheck": "npm run typecheck -w @ascend/core && npm run typecheck -w @ascend/server && npm run typecheck -w app"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

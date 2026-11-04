@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Ascend Protocol",
+    "slug": "ascend-protocol",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "ascendprotocol",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#04060C",
+    "ios": {
+      "bundleIdentifier": "com.ascendprotocol.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.ascendprotocol.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#04060C",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization",
+      "expo-iap",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#2BC4FF"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#04060C",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 120
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

@@ -13,3 +13,4 @@ app/web-build/
 *.jks
 *.keystore
 service-account*.json
+server/.pglite/
