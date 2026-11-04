@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Panel, Screen, T, Typewriter } from '@/ui/components';
+import { ServerSetting } from '@/ui/server-setting';
 import { colors, space } from '@/ui/theme';
 
 export default function Welcome() {
@@ -37,6 +38,7 @@ export default function Welcome() {
         {!finished ? (
           <Button title="Skip intro" variant="ghost" onPress={() => setLine(INTRO_SEQUENCE.length)} style={{ borderWidth: 0 }} />
         ) : null}
+        <ServerSetting />
       </View>
     </Screen>
   );
