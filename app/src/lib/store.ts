@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { api, hasSession, setSignedOutHandler, signOut as apiSignOut } from './api';
+import { api, hasSession, loadApiUrl, setSignedOutHandler, signOut as apiSignOut } from './api';
 import type { MeResponse, UserState } from './types';
 
 interface StoreState {
@@ -51,6 +51,7 @@ export async function loadMe() {
 export async function bootstrap() {
   setSignedOutHandler(() => set({ signedIn: false, me: null }));
   try {
+    await loadApiUrl();
     if (await hasSession()) await loadMe();
   } catch {
     // Offline or expired: the gate will show the sign-in screen or a retry.

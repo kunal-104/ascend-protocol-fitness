@@ -1,9 +1,47 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 /** Set EXPO_PUBLIC_API_URL in app/.env. 10.0.2.2 is the host machine as seen from the Android emulator. */
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:4000';
+const DEFAULT_API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:4000';
 export const BILLING_MODE = process.env.EXPO_PUBLIC_BILLING_MODE === 'mock' ? 'mock' : 'play';
+/** Test builds (mock billing) let the tester point the app at any server from the welcome screen. */
+export const SERVER_EDITABLE = BILLING_MODE === 'mock';
+
+const API_URL_KEY = 'ascend.apiUrl';
+let apiUrl = DEFAULT_API_URL;
+
+export function getApiUrl(): string {
+  return apiUrl;
+}
+
+export async function loadApiUrl() {
+  if (!SERVER_EDITABLE) return;
+  try {
+    apiUrl = (await AsyncStorage.getItem(API_URL_KEY)) ?? DEFAULT_API_URL;
+  } catch {
+    // keep the default
+  }
+}
+
+/** Normalises and saves a server address such as "192.168.1.20:4000". */
+export async function setApiUrl(input: string): Promise<string> {
+  let url = input.trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//.test(url)) url = `http://${url}`;
+  apiUrl = url;
+  await AsyncStorage.setItem(API_URL_KEY, url);
+  return url;
+}
+
+/** True if a server answers /health at the given address. */
+export async function checkServer(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${url}/health`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 const REFRESH_KEY = 'ascend.refreshToken';
 
@@ -57,7 +95,7 @@ async function refreshAccess(): Promise<boolean> {
     const rt = await tokenStore.getItemAsync(REFRESH_KEY);
     if (!rt) return false;
     try {
-      const res = await fetch(`${API_URL}/v1/auth/refresh`, {
+      const res = await fetch(`${apiUrl}/v1/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refreshToken: rt }),
@@ -79,7 +117,7 @@ async function refreshAccess(): Promise<boolean> {
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
   const { method = 'GET', body, auth = true } = opts;
   const send = () =>
-    fetch(`${API_URL}/v1${path}`, {
+    fetch(`${apiUrl}/v1${path}`, {
       method,
       headers: {
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
